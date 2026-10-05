@@ -15,6 +15,13 @@ public class Main extends Application {
 
         stage.setTitle("Joc Sudoku");
         stage.setScene(scene);
+
+        // Cerrar la conexion al servidor cuando se cierre
+        ControllerVistaInici controller = (ControllerVistaInici) UtilsViews.getController("VistaInici");
+        stage.setOnCloseRequest(event -> {
+            controller.cerrarConexion();
+        });
+
         stage.setResizable(false);
         stage.show();
     }
