@@ -1,3 +1,3 @@
 #!/bin/bash
 
-mvn exec:java -Dexec.mainClass="com.example.Servidor"
+mvn exec:java -Dexec.mainClass=com.example.Servidor
