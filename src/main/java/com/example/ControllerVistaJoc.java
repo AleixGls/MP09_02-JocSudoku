@@ -59,6 +59,9 @@ public class ControllerVistaJoc {
     private int columnaSeleccionada = -1;
     private Button celdaSeleccionada = null;
 
+    private String nombreJugador;
+    private boolean esMiTurno = false;
+
 
     
     @FXML
@@ -136,6 +139,24 @@ public class ControllerVistaJoc {
                 celdas[fila][columna].setDisable(true);
             });
         }
+        if (type.equals("turn")) {
+
+            String jugador = obj.getString("player");
+
+            Platform.runLater(() -> {
+                lblJugadorActual.setText(jugador);
+
+                boolean esMiTurno = jugador.equals(nombreJugador);
+
+                if (this.esMiTurno && !esMiTurno) {
+                    deseleccionarCasilla();
+                }
+
+                this.esMiTurno = esMiTurno;
+
+                actualizarControlesTurno(esMiTurno);
+            });
+        }
     }
 
     // Metodo para crear el tablero de sudoku
@@ -154,6 +175,11 @@ public class ControllerVistaJoc {
                 final int columnaCelda = columna;
 
                 celda.setOnAction(event -> {
+
+                    if (!esMiTurno) {
+                        return;
+                    }
+
                 
                     if (celdaSeleccionada != null) {
                     
@@ -215,5 +241,38 @@ public class ControllerVistaJoc {
         wsClient.safeSend(mensaje.toString());
 
         System.out.println("Jugada enviada: " + mensaje);
+    }
+
+    public void setNombreJugador(String nombreJugador) {
+        this.nombreJugador = nombreJugador;
+    }
+    private void actualizarControlesTurno(boolean esMiTurno) {
+
+        btnNumero1.setDisable(!esMiTurno);
+        btnNumero2.setDisable(!esMiTurno);
+        btnNumero3.setDisable(!esMiTurno);
+        btnNumero4.setDisable(!esMiTurno);
+        btnNumero5.setDisable(!esMiTurno);
+        btnNumero6.setDisable(!esMiTurno);
+        btnNumero7.setDisable(!esMiTurno);
+        btnNumero8.setDisable(!esMiTurno);
+        btnNumero9.setDisable(!esMiTurno);
+    }
+    private void deseleccionarCasilla() {
+
+        if (celdaSeleccionada != null) {
+
+            if (casillasCorrectas[filaSeleccionada][columnaSeleccionada]) {
+                celdaSeleccionada.setStyle(
+                    "-fx-background-color: lightgreen;"
+                );
+            } else {
+                celdaSeleccionada.setStyle("");
+            }
+
+            celdaSeleccionada = null;
+            filaSeleccionada = -1;
+            columnaSeleccionada = -1;
+        }
     }
 }

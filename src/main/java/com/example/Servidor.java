@@ -5,7 +5,7 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import java.net.InetSocketAddress;
@@ -13,8 +13,9 @@ import java.net.InetSocketAddress;
 
 public class Servidor extends WebSocketServer {
 
-    private Map<WebSocket, String> jugadores = new HashMap<>();
+    private Map<WebSocket, String> jugadores = new LinkedHashMap<>();
     private Sudoku partidaActual;
+    private WebSocket jugadorTurno;
 
 
 
@@ -31,8 +32,54 @@ public class Servidor extends WebSocketServer {
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        String jugador = jugadores.remove(conn);
+
+        String jugador = jugadores.get(conn);
+
+        boolean eraSuTurno = (conn == jugadorTurno);
+
+        WebSocket siguienteJugador = null;
+
+        if (eraSuTurno) {
+
+            boolean encontrado = false;
+
+            for (WebSocket jugadorWS : jugadores.keySet()) {
+
+                if (encontrado) {
+                    siguienteJugador = jugadorWS;
+                    break;
+                }
+
+                if (jugadorWS == conn) {
+                    encontrado = true;
+                }
+            }
+        }
+
+        jugadores.remove(conn);
+
         System.out.println("Cliente desconectado: " + jugador);
+
+        if (eraSuTurno) {
+
+            if (siguienteJugador != null && jugadores.containsKey(siguienteJugador)) {
+                jugadorTurno = siguienteJugador;
+            } else if (!jugadores.isEmpty()) {
+                jugadorTurno = jugadores.keySet().iterator().next();
+            } else {
+                jugadorTurno = null;
+            }
+
+            if (jugadorTurno != null) {
+                System.out.println(
+                    "Turno después de desconexión → " +
+                    jugadores.get(jugadorTurno)
+                );
+
+                enviarTurno();
+            }
+        }
+
         enviarListaJugadores();
     }
 
@@ -59,16 +106,27 @@ public class Servidor extends WebSocketServer {
                 System.out.println("Nueva partida de Sudoku creada.");
             }
 
+            if (jugadorTurno == null) {
+                jugadorTurno = conn;
+                System.out.println("Primer turno para: " + name);
+            }
+
             System.out.println("Jugador conectado: " + name);
             System.out.println("Jugadores conectados: " + jugadores.values());
 
             enviarListaJugadores();
             enviarTablero();
+            enviarTurno();
         }
 
         if (type.equals("move")) {
 
             String jugador = jugadores.get(conn);
+
+            if (conn != jugadorTurno) {
+                System.out.println("No es el turno de " + jugador);
+                return;
+            }
 
             int fila = obj.getInt("row");
             int columna = obj.getInt("col");
@@ -81,6 +139,14 @@ public class Servidor extends WebSocketServer {
                 ", numero=" + numero
             );
 
+            // Comprobar que el jugador no puede hacer trampas 
+            // enviando el numero correcto a una casilla ocupada
+            int valorActual = partidaActual.getTablero()[fila][columna];
+            if (valorActual != 0) {
+                System.out.println("Esa casilla ya está ocupada.");
+                return;
+            }
+
             if (partidaActual.esCorrecto(fila, columna, numero)) {
                 System.out.println("Jugada CORRECTA");
 
@@ -90,8 +156,22 @@ public class Servidor extends WebSocketServer {
 
                 enviarCasillaCorrecta(fila, columna);
 
+                System.out.println(
+                    "Terminando turno de: " + jugadores.get(jugadorTurno)
+                );
+
+                siguienteTurno();
+                enviarTurno();
+
             } else {
                 System.out.println("Jugada INCORRECTA");
+
+                System.out.println(
+                    "Terminando turno de: " + jugadores.get(jugadorTurno)
+                );
+
+                siguienteTurno();
+                enviarTurno();
             }
         }
     }
@@ -160,7 +240,52 @@ public class Servidor extends WebSocketServer {
             jugador.send(mensaje.toString());
         }
     }
-    
+    private void siguienteTurno() {
+
+        if (jugadores.isEmpty()) {
+            jugadorTurno = null;
+            return;
+        }
+
+        WebSocket siguiente = null;
+        boolean siguienteEncontrado = false;
+
+        for (WebSocket jugador : jugadores.keySet()) {
+
+            if (siguienteEncontrado) {
+                siguiente = jugador;
+                break;
+            }
+
+            if (jugador == jugadorTurno) {
+                siguienteEncontrado = true;
+            }
+        }
+
+        if (siguiente == null) {
+            siguiente = jugadores.keySet().iterator().next();
+        }
+
+        jugadorTurno = siguiente;
+
+        System.out.println(
+            "CAMBIO DE TURNO → " + jugadores.get(jugadorTurno)
+        );
+    }
+    private void enviarTurno() {
+
+        String nombreJugador = jugadores.get(jugadorTurno);
+        
+        JSONObject mensaje = new JSONObject();
+        
+        mensaje.put("type", "turn");
+        mensaje.put("player", nombreJugador);
+        
+        for (WebSocket jugador : jugadores.keySet()) {
+            jugador.send(mensaje.toString());
+        }
+    }
+
     public static void main(String[] args) {
         Servidor servidor = new Servidor(3000);
         servidor.start();

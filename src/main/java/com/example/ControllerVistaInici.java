@@ -78,7 +78,9 @@ public class ControllerVistaInici {
         ControllerVistaJoc controllerJoc = (ControllerVistaJoc) UtilsViews.getController("VistaJoc");
         controllerJoc.setWebSocket(wsClient);
 
+        
         String jugador = txtJugador.getText().trim();
+        controllerJoc.setNombreJugador(jugador);
         wsClient.safeSend(
             "{\"type\":\"join\",\"name\":\"" + jugador + "\"}"
         );
