@@ -84,8 +84,9 @@ public class Servidor extends WebSocketServer {
                 enviarTurno();
             }
         }
-
+        
         enviarListaJugadores();
+        enviarPuntuaciones();
     }
 
     @Override

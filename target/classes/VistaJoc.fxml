@@ -4,10 +4,8 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
@@ -24,10 +22,7 @@
       </HBox>
    </top>
    <center>
-      <GridPane fx:id="gridSudoku"
-                hgap="2.0"
-                vgap="2.0"
-                BorderPane.alignment="CENTER">
+      <GridPane fx:id="gridSudoku" hgap="2.0" vgap="2.0" BorderPane.alignment="CENTER">
           <BorderPane.margin>
               <Insets left="100.0" right="100.0" />
           </BorderPane.margin>
@@ -41,7 +36,7 @@
                   <Font size="24.0" />
                </font>
             </Label>
-            <VBox fx:id="listaJugadores" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS" />
+            <VBox fx:id="listaJugadores" alignment="TOP_CENTER" prefHeight="200.0" prefWidth="200.0" spacing="5.0" VBox.vgrow="ALWAYS" />
          </children>
       </VBox>
    </right>

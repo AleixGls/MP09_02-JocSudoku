@@ -95,9 +95,34 @@ public class ControllerVistaJoc {
                     String nombre = players.getString(i);
                 
                     Label jugador = new Label(nombre);
-                    jugador.setStyle("-fx-font-size: 18px;");
+                    jugador.setStyle("-fx-font-size: 16px;");
                 
                     listaJugadores.getChildren().add(jugador);
+                }
+            });
+        }
+        if (type.equals("scores")) {
+        
+            JSONArray jugadoresArray = obj.getJSONArray("players");
+        
+            Platform.runLater(() -> {
+            
+                listaJugadores.getChildren().clear();
+            
+                for (int i = 0; i < jugadoresArray.length(); i++) {
+                
+                    JSONObject jugador = jugadoresArray.getJSONObject(i);
+                
+                    String nombre = jugador.getString("name");
+                    int puntos = jugador.getInt("points");
+                
+                    Label label = new Label(
+                        nombre + ": " + puntos + " puntos"
+                    );
+                
+                    label.setStyle("-fx-font-size: 16px;");
+                
+                    listaJugadores.getChildren().add(label);
                 }
             });
         }
