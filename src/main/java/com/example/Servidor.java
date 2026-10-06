@@ -5,6 +5,7 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,8 +15,12 @@ import java.net.InetSocketAddress;
 public class Servidor extends WebSocketServer {
 
     private Map<WebSocket, String> jugadores = new LinkedHashMap<>();
+    private Map<WebSocket, Integer> puntos = new HashMap<>();
+    private Map<WebSocket, String> nombres = new LinkedHashMap<>();
+
     private Sudoku partidaActual;
     private WebSocket jugadorTurno;
+    
 
 
 
@@ -98,6 +103,8 @@ public class Servidor extends WebSocketServer {
             String name = obj.getString("name");
 
             jugadores.put(conn, name);
+            nombres.put(conn, name);
+            puntos.put(conn, 0);
 
             if (partidaActual == null) {
                 partidaActual = new Sudoku();
@@ -115,6 +122,7 @@ public class Servidor extends WebSocketServer {
             System.out.println("Jugadores conectados: " + jugadores.values());
 
             enviarListaJugadores();
+            enviarPuntuaciones();
             enviarTablero();
             enviarTurno();
         }
@@ -150,6 +158,13 @@ public class Servidor extends WebSocketServer {
             if (partidaActual.esCorrecto(fila, columna, numero)) {
                 System.out.println("Jugada CORRECTA");
 
+                puntos.put(conn, puntos.get(conn) + 2);
+                enviarPuntuaciones();
+
+                System.out.println(
+                    "Puntos de " + jugadores.get(conn) + ": " + puntos.get(conn)
+                );
+
                 partidaActual.ponerNumero(fila, columna, numero);
 
                 enviarTablero();
@@ -165,6 +180,13 @@ public class Servidor extends WebSocketServer {
 
             } else {
                 System.out.println("Jugada INCORRECTA");
+
+                puntos.put(conn, puntos.get(conn) - 1);
+                enviarPuntuaciones();
+
+                System.out.println(
+                    "Puntos de " + jugadores.get(conn) + ": " + puntos.get(conn)
+                );
 
                 System.out.println(
                     "Terminando turno de: " + jugadores.get(jugadorTurno)
@@ -186,6 +208,7 @@ public class Servidor extends WebSocketServer {
         System.out.println("Servidor iniciado en el puerto " + getPort());
     }
 
+    // Metodos de jugadores y puntos
     private void enviarListaJugadores() {
         JSONArray lista = new JSONArray();
 
@@ -201,7 +224,31 @@ public class Servidor extends WebSocketServer {
             jugador.send(mensaje.toString());
         }
     }
+    private void enviarPuntuaciones() {
 
+        JSONObject mensaje = new JSONObject();
+        mensaje.put("type", "scores");
+
+        JSONArray jugadoresArray = new JSONArray();
+
+        for (WebSocket jugador : jugadores.keySet()) {
+
+            JSONObject jugadorJSON = new JSONObject();
+
+            jugadorJSON.put("name", jugadores.get(jugador));
+            jugadorJSON.put("points", puntos.get(jugador));
+
+            jugadoresArray.put(jugadorJSON);
+        }
+
+        mensaje.put("players", jugadoresArray);
+
+        for (WebSocket jugador : jugadores.keySet()) {
+            jugador.send(mensaje.toString());
+        }
+    }
+
+    // Metodos de tablero y casillas
     private void enviarTablero() {
 
         JSONArray tablero = new JSONArray();
@@ -227,7 +274,6 @@ public class Servidor extends WebSocketServer {
             jugador.send(mensaje.toString());
         }
     }   
-
     private void enviarCasillaCorrecta(int fila, int columna) {
 
         JSONObject mensaje = new JSONObject();
@@ -240,6 +286,8 @@ public class Servidor extends WebSocketServer {
             jugador.send(mensaje.toString());
         }
     }
+
+    // Metodos de turons
     private void siguienteTurno() {
 
         if (jugadores.isEmpty()) {
