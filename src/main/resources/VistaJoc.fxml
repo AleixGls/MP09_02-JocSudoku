@@ -22,7 +22,7 @@
       </HBox>
    </top>
    <center>
-      <GridPane fx:id="gridSudoku" hgap="2.0" vgap="2.0" BorderPane.alignment="CENTER">
+      <GridPane fx:id="gridSudoku" hgap="0.0" vgap="0.0" BorderPane.alignment="CENTER">
           <BorderPane.margin>
               <Insets left="100.0" right="100.0" />
           </BorderPane.margin>

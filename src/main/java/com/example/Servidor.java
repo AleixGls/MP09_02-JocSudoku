@@ -20,10 +20,11 @@ public class Servidor extends WebSocketServer {
 
     private Sudoku partidaActual;
     private WebSocket jugadorTurno;
+    private boolean partidaTerminada = false;
     
 
 
-
+    // Constructor
     public Servidor(int puerto) {
         super(new InetSocketAddress(puerto));
     }
@@ -101,6 +102,8 @@ public class Servidor extends WebSocketServer {
 
         if (type.equals("join")) {
 
+
+
             String name = obj.getString("name");
 
             jugadores.put(conn, name);
@@ -129,6 +132,11 @@ public class Servidor extends WebSocketServer {
         }
 
         if (type.equals("move")) {
+
+            if (partidaTerminada) {
+                System.out.println("Jugada rechazada: la partida ha terminado.");
+                return;
+            }
 
             String jugador = jugadores.get(conn);
 
@@ -176,8 +184,19 @@ public class Servidor extends WebSocketServer {
                     "Terminando turno de: " + jugadores.get(jugadorTurno)
                 );
 
-                siguienteTurno();
-                enviarTurno();
+                // Despues de una jugada, comprobamos si el tablero esta acabado
+                if (partidaActual.estaCompleto()) {
+                    partidaTerminada = true;
+
+                    System.out.println("PARTIDA TERMINADA");
+
+                    // Enviar tabla de resultados de la partida
+                    enviarResultados();
+
+                } else {
+                    siguienteTurno();
+                    enviarTurno();
+                }
 
             } else {
                 System.out.println("Jugada INCORRECTA");
@@ -196,6 +215,21 @@ public class Servidor extends WebSocketServer {
                 siguienteTurno();
                 enviarTurno();
             }
+        }
+
+        if (type.equals("restart")) {
+
+            if (!jugadores.containsKey(conn)) {
+                System.out.println("Reinicio rechazado: jugador no registrado.");
+                return;
+            }
+        
+            if (!partidaTerminada) {
+                System.out.println("Reinicio rechazado: la partida no ha terminado.");
+                return;
+            }
+        
+            reiniciarPartida();
         }
     }
 
@@ -335,6 +369,85 @@ public class Servidor extends WebSocketServer {
         }
     }
 
+    // Metodos del ranking
+    private void enviarResultados() {
+
+        JSONObject mensaje = new JSONObject();
+        mensaje.put("type", "gameOver");
+
+        JSONArray ranking = new JSONArray();
+
+        for (WebSocket jugador : nombres.keySet()) {
+
+            JSONObject resultado = new JSONObject();
+
+            resultado.put("name", nombres.get(jugador));
+            resultado.put("points", puntos.get(jugador));
+
+            ranking.put(resultado);
+        }
+
+        mensaje.put("ranking", ranking);
+
+        for (WebSocket jugador : jugadores.keySet()) {
+            jugador.send(mensaje.toString());
+        }
+
+        System.out.println("Enviando resultados: " + mensaje.toString());
+    }
+
+    private void reiniciarPartida() {
+
+        System.out.println("REINICIANDO PARTIDA");
+
+        // Generar un Sudoku nuevo
+        partidaActual = new Sudoku();
+        partidaActual.generarSolucion();
+
+        // La nueva partida todavía no ha terminado
+        partidaTerminada = false;
+
+        // Limpiar los resultados de la partida anterior
+        nombres.clear();
+        puntos.clear();
+
+        // Registrar a los jugadores que siguen conectados
+        for (WebSocket jugador : jugadores.keySet()) {
+
+            nombres.put(jugador, jugadores.get(jugador));
+            puntos.put(jugador, 0);
+        }
+
+        // El primer jugador conectado empieza
+        if (!jugadores.isEmpty()) {
+            jugadorTurno = jugadores.keySet().iterator().next();
+        } else {
+            jugadorTurno = null;
+        }
+
+        System.out.println("Nueva partida creada");
+
+        // Avisar a los clientes de que comienza una nueva partida
+        JSONObject mensaje = new JSONObject();
+        mensaje.put("type", "restart");
+
+        for (WebSocket jugador : jugadores.keySet()) {
+            jugador.send(mensaje.toString());
+        }
+
+        // Enviar el estado actualizado
+        enviarListaJugadores();
+        enviarPuntuaciones();
+        enviarTablero();
+
+        if (jugadorTurno != null) {
+            enviarTurno();
+        }
+    }
+
+
+
+    // Metodo main para iniciar el servidor
     public static void main(String[] args) {
         Servidor servidor = new Servidor(3000);
         servidor.start();

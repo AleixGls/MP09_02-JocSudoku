@@ -157,9 +157,7 @@ public class ControllerVistaJoc {
             
                 casillasCorrectas[fila][columna] = true;
             
-                celdas[fila][columna].setStyle(
-                    "-fx-background-color: lightgreen;"
-                );
+                aplicarEstiloCelda(fila, columna, "lightgreen");
             
                 celdas[fila][columna].setDisable(true);
             });
@@ -182,6 +180,29 @@ public class ControllerVistaJoc {
                 actualizarControlesTurno(esMiTurno);
             });
         }
+        if (type.equals("gameOver")) {
+
+            JSONArray ranking = obj.getJSONArray("ranking");
+
+            Platform.runLater(() -> {
+            
+                ControllerVistaResultat controllerResultat =
+                    (ControllerVistaResultat) UtilsViews.getController("VistaResultat");
+            
+                controllerResultat.mostrarRanking(ranking);
+            
+                UtilsViews.setViewAnimating("VistaResultat");
+            });
+        }
+        if (type.equals("restart")) {
+
+            Platform.runLater(() -> {
+            
+                reiniciarTablero();
+            
+                UtilsViews.setViewAnimating("VistaJoc");
+            });
+        }
     }
 
     // Metodo para crear el tablero de sudoku
@@ -195,6 +216,8 @@ public class ControllerVistaJoc {
                 celda.setPrefSize(50, 50);
 
                 celdas[fila][columna] = celda;
+                
+                aplicarEstiloCelda(fila, columna, "white");
 
                 final int filaCelda = fila;
                 final int columnaCelda = columna;
@@ -209,11 +232,9 @@ public class ControllerVistaJoc {
                     if (celdaSeleccionada != null) {
                     
                         if (casillasCorrectas[filaSeleccionada][columnaSeleccionada]) {
-                            celdaSeleccionada.setStyle(
-                                "-fx-background-color: lightgreen;"
-                            );
+                            aplicarEstiloCelda(filaSeleccionada, columnaSeleccionada, "lightgreen");
                         } else {
-                            celdaSeleccionada.setStyle("");
+                            aplicarEstiloCelda(filaSeleccionada, columnaSeleccionada, "white");
                         }
                     }
                 
@@ -221,9 +242,7 @@ public class ControllerVistaJoc {
                     filaSeleccionada = filaCelda;
                     columnaSeleccionada = columnaCelda;
                 
-                    celdaSeleccionada.setStyle(
-                        "-fx-background-color: lightblue;"
-                    );
+                    aplicarEstiloCelda(filaSeleccionada, columnaSeleccionada, "lightblue");
                 
                     System.out.println(
                         "Casilla seleccionada: fila " +
@@ -236,6 +255,28 @@ public class ControllerVistaJoc {
                 gridSudoku.add(celda, columna, fila);
             }
         }
+    }
+    private void aplicarEstiloCelda(int fila, int columna, String color) {
+        
+        int bordeSuperior = (fila % 3 == 0) ? 3 : 1;
+        int bordeIzquierdo = (columna % 3 == 0) ? 3 : 1;
+        
+        int bordeInferior = (fila == 8) ? 3 : 1;
+        int bordeDerecho = (columna == 8) ? 3 : 1;
+        
+        String estilo =
+            "-fx-background-color: " + color + ";" +
+            "-fx-border-color: black;" +
+            "-fx-border-width: " +
+            bordeSuperior + " " +
+            bordeDerecho + " " +
+            bordeInferior + " " +
+            bordeIzquierdo + ";" +
+            "-fx-background-radius: 0;" +
+            "-fx-border-radius: 0;" +
+            "-fx-font-size: 18px;";
+        
+        celdas[fila][columna].setStyle(estilo);
     }
 
     // Metodos para poner los numeros en las casillas del tablero
@@ -288,16 +329,44 @@ public class ControllerVistaJoc {
         if (celdaSeleccionada != null) {
 
             if (casillasCorrectas[filaSeleccionada][columnaSeleccionada]) {
-                celdaSeleccionada.setStyle(
-                    "-fx-background-color: lightgreen;"
-                );
+                aplicarEstiloCelda(filaSeleccionada, columnaSeleccionada, "lightgreen");
             } else {
-                celdaSeleccionada.setStyle("");
+                aplicarEstiloCelda(filaSeleccionada, columnaSeleccionada, "white");
             }
 
             celdaSeleccionada = null;
             filaSeleccionada = -1;
             columnaSeleccionada = -1;
         }
+    }
+
+    // Metodo para reiniciar el tablero
+    private void reiniciarTablero() {
+
+        // Eliminar la selección anterior
+        celdaSeleccionada = null;
+        filaSeleccionada = -1;
+        columnaSeleccionada = -1;
+
+        // Reiniciar el estado de las casillas
+        casillasCorrectas = new boolean[9][9];
+
+        // Limpiar todos los botones del Sudoku
+        for (int fila = 0; fila < 9; fila++) {
+            for (int columna = 0; columna < 9; columna++) {
+
+                Button celda = celdas[fila][columna];
+
+                celda.setText("");
+                aplicarEstiloCelda(fila, columna, "white");
+                celda.setDisable(false);
+            }
+        }
+
+        // Esperar a recibir el nuevo turno
+        esMiTurno = false;
+        actualizarControlesTurno(false);
+
+        lblJugadorActual.setText("");
     }
 }

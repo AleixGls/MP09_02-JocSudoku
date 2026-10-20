@@ -96,6 +96,17 @@ public class Sudoku {
 
         return true;
     }
+    public boolean estaCompleto() {
+        for (int fila = 0; fila < 9; fila++) {
+            for (int columna = 0; columna < 9; columna++) {
+                if (tablero[fila][columna] == 0) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 
     // Tablero
     private void crearTablero() {
